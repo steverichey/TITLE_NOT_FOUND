@@ -9,6 +9,12 @@
 	<window if="mobile" orientation="landscape" fullscreen="true" width="0" height="0" />
 	<set name="BUILD_DIR" value="export" />
 	<classpath name="source" />
+	<assets path="sound">
+		<sound path="hurt.mp3" id="Hurt"/>
+		<sound path="move.mp3" id="Move"/>
+		<sound path="slide.mp3" id="Slide"/>
+		<sound path="goody.mp3" id="Goody"/>
+	</assets>
 	<haxelib name="flixel"/>
 	<haxedef name="FLX_NO_DEBUG" unless="debug" />
 	<haxedef name="NAPE_RELEASE_BUILD" unless="debug" />

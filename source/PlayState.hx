@@ -8,8 +8,10 @@ import flixel.FlxState;
 import flixel.group.FlxGroup;
 import flixel.group.FlxTypedGroup.FlxTypedGroup;
 import flixel.text.FlxText;
+import flixel.tweens.FlxTween;
 import flixel.ui.FlxButton;
 import flixel.util.FlxColor;
+import flixel.util.FlxColorUtil;
 import flixel.util.FlxMath;
 import flixel.util.FlxPoint;
 import flixel.util.FlxRandom;
@@ -26,10 +28,14 @@ class PlayState extends FlxState
 	
 	private var _width:Int = 0;
 	private var _height:Int = 0;
+	
+	private var _cameraColor:Int = 0;
 	private var _enemyColor:Int = 0;
 	private var _goodyColor:Int = 0;
 	private var _blockColor:Int = 0;
 	private var _wallColor:Int = 0;
+	private var _playerColor:Int = 0;
+	
 	private var _numEnemies:Int = 0;
 	private var _numGoodies:Int = 0;
 	private var _numBlocks:Int = 0;
@@ -52,7 +58,22 @@ class PlayState extends FlxState
 	{
 		super.create();
 		
-		FlxG.camera.bgColor = FlxRandom.color();
+		var colors:Array<Int> = [];
+		colors.push(FlxRandom.color());
+		
+		for (i in 1...5)
+		{
+			colors.push( FlxColorUtil.HSVtoARGB( FlxMath.wrapValue( Std.int( FlxColorUtil.RGBtoHSV( colors[ i - 1 ] ).hue ), 72, 359 ), 1, 1 ) );
+		}
+		
+		_playerColor = colors[0];
+		_enemyColor = colors[1];
+		_goodyColor = colors[2];
+		
+		_blockColor = colors[3];
+		_wallColor = colors[4];
+		
+		FlxG.camera.bgColor = FlxColor.BLACK;
 		FlxG.mouse.visible = false;
 		_fieldSize = Std.int(FlxG.width / FlxG.camera.zoom) - 1;
 		
@@ -63,11 +84,6 @@ class PlayState extends FlxState
 				_availPos.push(new FlxPoint(xPos, yPos));
 			}
 		}
-		
-		_enemyColor = FlxRandom.color();
-		_goodyColor = FlxRandom.color();
-		_blockColor = FlxRandom.color();
-		_wallColor = FlxRandom.color();
 		
 		_numEnemies = FlxRandom.intRanged(MIN_ENEMIES, Std.int(_fieldSize * _fieldSize * ENEMY_RATIO));
 		_numGoodies = FlxRandom.intRanged(MIN_GOODIES, Std.int(_fieldSize * _fieldSize * GOODY_RATIO));
@@ -90,7 +106,12 @@ class PlayState extends FlxState
 		for (i in 0..._numWalls) _walls.add(createSprite(_wallColor, true));
 		add(_walls);
 		
-		_player = createSprite(FlxRandom.color());
+		_player = createSprite(FlxColor.WHITE);
+		_player.width = 0.5;
+		_player.height = 0.5;
+		_player.centerOffsets();
+		_player.updateHitbox();
+		FlxTween.color(_player, 0.5, _playerColor, FlxColor.WHITE, 1, 1, {type: FlxTween.PINGPONG});
 		add(_player);
 		
 		_movers = new FlxGroup();
@@ -118,12 +139,14 @@ class PlayState extends FlxState
 		FlxG.overlap(_player, _goodies, getGoody);
 		
 		if (FlxG.keys.justPressed.ANY) {
+			FlxG.sound.play("Move");
+			
 			for (enemy in _enemies) {
 				if (FlxRandom.chanceRoll()) move(enemy);
 			}
 		}
 		
-		FlxG.collide(_movers, _nonmovers);
+		FlxG.collide(_movers, _nonmovers, slideBlock);
 		FlxG.collide(_nonmovers);
 		
 		#if debug
@@ -131,6 +154,11 @@ class PlayState extends FlxState
 		#end
 		
 		super.update();
+	}
+	
+	private function slideBlock(Object1:Dynamic, Object2:Dynamic):Void
+	{
+		
 	}
 	
 	private function move(Object:FlxSprite):FlxSprite
@@ -187,6 +215,8 @@ class PlayState extends FlxState
 	
 	private function hitEnemy(Player:Dynamic, Enemy:Dynamic):Void
 	{
+		FlxG.sound.play("Hurt");
+		
 		if (_health <= 0)
 		{
 			_player.kill();
@@ -202,6 +232,7 @@ class PlayState extends FlxState
 	
 	private function getGoody(Player:Dynamic, Goody:Dynamic):Void
 	{
+		FlxG.sound.play("Goody");
 		cast(Goody, FlxSprite).kill();
 		_numGoodies--;
 		if (_numGoodies <= 0) FlxG.camera.flash(FlxColor.GREEN, 0.5, winGame);
